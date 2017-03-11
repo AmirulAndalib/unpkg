@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+export PATH='/usr/bin:/usr/sbin:/bin:/sbin'
+
+help() {
+  echo 'Usage:'
+  echo "  $(basename $0) Installer.pkg OutputDirectory"
+}
+
+PKG=$1
+OUTDIR=$2
+
+if [[ -z "$PKG" || -z "$OUTDIR" ]]; then
+  help
+  exit 1
+fi
+
+clean_up() {
+  if [[ -d "$UNPKG" ]]; then
+    rm -rf "$UNPKG"
+  fi
+}
+trap clean_up EXIT
+
+UNPKG=$(mktemp -d "$(dirname "$OUTDIR")/$(basename "$PKG")-unpacked-XXXXXX")
+pkgutil --expand "$PKG" "$UNPKG/data"
+while read data
+do
+  pushd "$(dirname "$data")" > /dev/null || continue
+  gzip --quiet --test Payload && {
+    gzcat Payload | cpio -idmu --quiet
+    rm -f Payload Bom
+  }
+  popd > /dev/null
+done < <(find "$UNPKG" -name Payload -type f)
+ditto "$UNPKG/data" "$OUTDIR"
