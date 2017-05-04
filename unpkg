@@ -5,7 +5,7 @@ export PATH='/usr/bin:/usr/sbin:/bin:/sbin'
 
 help() {
   echo 'Usage:'
-  echo "  $(basename $0) Installer.pkg OutputDirectory"
+  echo "  $(printf %q "$(basename -- "$0")") Installer.pkg OutputDirectory"
 }
 
 PKG=$1
