@@ -1,15 +1,19 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
-export PATH='/usr/bin:/usr/sbin:/bin:/sbin'
+export PATH='/usr/bin:/bin:/usr/sbin:/sbin'
+
+echo() {
+  printf '%s\n' "$*"
+}
 
 help() {
   echo 'Usage:'
   echo "  $(printf %q "$(basename -- "$0")") Installer.pkg OutputDirectory"
 }
 
-PKG=$1
-OUTDIR=$2
+PKG="$1"
+OUTDIR="$2"
 
 if [ -z "${PKG}" ] || [ -z "${OUTDIR}" ]; then
   help
@@ -23,14 +27,16 @@ clean_up() {
 }
 trap clean_up EXIT
 
-UNPKG=$(mktemp -d "$(dirname -- "${OUTDIR}")/$(basename -- "${PKG}")-unpacked-XXXXXX")
+UNPKG="$(mktemp -d "$(dirname -- "${OUTDIR}")/$(basename -- "${PKG}")-unpacked-XXXXXX")"
 pkgutil --expand "${PKG}" "${UNPKG}/data"
-while read -r data; do
+while IFS= read -r data; do
   pushd "$(dirname -- "${data}")" > /dev/null || continue
   gzip --quiet --test Payload && {
     gzcat Payload | cpio -idmu --quiet
     rm -f Payload Bom
   }
   popd > /dev/null
-done < <(find "${UNPKG}" -name Payload -type f)
+done <<EOT
+$(find "${UNPKG}" -name Payload -type f)
+EOT
 ditto "${UNPKG}/data" "${OUTDIR}"
