@@ -9,7 +9,7 @@ echo() {
 
 help() {
   echo 'Usage:'
-  echo "  $(printf %q "$(basename -- "$0")") Installer.pkg OutputDirectory"
+  echo "  unpkg Installer.pkg OutputDirectory"
 }
 
 PKG="$1"
@@ -29,14 +29,21 @@ trap clean_up EXIT
 
 UNPKG="$(mktemp -d "$(dirname -- "${OUTDIR}")/$(basename -- "${PKG}")-unpacked-XXXXXX")"
 pkgutil --expand "${PKG}" "${UNPKG}/data"
-while IFS= read -r data; do
-  pushd "$(dirname -- "${data}")" > /dev/null || continue
-  gzip --quiet --test Payload && {
-    gzcat Payload | cpio -idmu --quiet
-    rm -f Payload Bom
-  }
-  popd > /dev/null
-done <<EOT
-$(find "${UNPKG}" -name Payload -type f)
-EOT
+
+eval "set -- $(find "${UNPKG}" -name Payload -type f \
+        -exec sh -c "for path; do
+                       printf '%s\\n' \"\${path}\" |
+                         sed \"s/'/'\\\\\\\\''/g;1s/^/'/;\\\$s/\\\$/' \\\\\\\\/\"
+                     done" dummy '{}' +)"
+# If you remove this line, the bash shell may bark.
+for path; do
+  OLDPWD="$(pwd)"
+  if cd -- "$(dirname -- "${path}")"; then
+    if gzip --quiet --test Payload; then
+      gzcat Payload | cpio -idmu --quiet
+      rm -f Payload Bom
+    fi
+    cd -- "${OLDPWD}"
+  fi
+done
 ditto "${UNPKG}/data" "${OUTDIR}"
