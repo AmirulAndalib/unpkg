@@ -1,15 +1,12 @@
 #!/bin/sh
 
-set -e
-export PATH='/usr/bin:/bin:/usr/sbin:/sbin'
-
-echo() {
-  printf '%s\n' "$*"
-}
+set -euf; unset -v IFS; export LC_ALL=C
 
 help() {
-  echo 'Usage:'
-  echo "  unpkg Installer.pkg OutputDirectory"
+  echo 'Usage: unpkg <input.pkg> <directory>'
+}
+echo() {
+  printf '%s\n' "$*"
 }
 
 PKG="$1"
@@ -20,30 +17,106 @@ if [ -z "${PKG}" ] || [ -z "${OUTDIR}" ]; then
   exit 1
 fi
 
-clean_up() {
+# works like "realpath -P ..." but the last path component can be nonexistent
+# usage: realpath varname filepath
+unset -f realpath readlink
+unalias realpath readlink 2>/dev/null || true
+if [ -x "$(command -v realpath 2>/dev/null)" ]; then
+  realpath() {
+    set -- "$1" "$(command realpath -- "$2" && printf //)"
+    case "$2" in (/*?//) eval " $1=\"\${2%?//}\" ";; (*) false; esac
+  }
+elif [ -x "$(command -v readlink 2>/dev/null)" ]; then
+  realpath() {
+    set -- "$1" "$(
+      path="$2" dirname='' basename=''
+      while true; do
+        path="${path%"${path##*[!/]}"}"
+        case "${path:-/}" in
+          (*/*) dirname="${path%/*}" basename="${path##*/}" ;;
+          (*) dirname=. basename="${path}" ;;
+        esac
+        cd -- "${dirname:-/}" || exit
+        path="$(readlink -- "${basename}" && printf /)" || break
+        path="${path%?/}"
+      done
+      case "${basename}" in (.|..)
+        cd -- "${basename}" || exit
+        basename=''
+      esac
+      dirname="$(pwd -P && printf /)" || exit
+      dirname="${dirname%?/}"
+      case "${basename}" in
+        ('') printf '%s///' "${dirname}" ;;
+        (*) printf '%s///' "${dirname%/}/${basename}"
+      esac
+    )"
+    case "$2" in (/*?//) eval " $1=\"\${2%?//}\" ";; (*) false; esac
+  }
+fi
+
+on_exit() {
+  exitcode="$?"
   if [ -d "${UNPKG}" ]; then
-    rm -Rf "${UNPKG}"
+    rm -Rf -- "${UNPKG}"
   fi
+  exit "${exitcode}"
 }
-trap clean_up EXIT
+trap on_exit EXIT
 
 UNPKG="$(mktemp -d "$(dirname -- "${OUTDIR}")/$(basename -- "${PKG}")-unpacked-XXXXXX")"
+realpath UNPKG "${UNPKG}"
+
 pkgutil --expand "${PKG}" "${UNPKG}/data"
 
-eval "set -- $(find "${UNPKG}" -name Payload -type f \
-        -exec sh -c "for path; do
-                       printf '%s\\n' \"\${path}\" |
-                         sed \"s/'/'\\\\\\\\''/g;1s/^/'/;\\\$s/\\\$/' \\\\\\\\/\"
-                     done" dummy '{}' +)"
-# If you remove this line, the bash shell may bark.
-for path; do
-  OLDPWD="$(pwd)"
-  if cd -- "$(dirname -- "${path}")"; then
-    if gzip --quiet --test Payload; then
-      gzcat Payload | cpio -idmu --quiet
-      rm -f Payload Bom
+YAA_IGNORE='^(\.|\.\.(/.*)*|/.*)$'
+
+set -- "${UNPKG}/data"
+while true; do
+  eval "set -- $(
+    find "$@" \
+         -name Payload -type f \
+         -exec sh -c "for path; do
+                        printf '%s\\n' \"\${path%/Payload}\" \
+                          | sed -e \"s/'/'\\\\\\\\''/g\" \
+                                -e \"1s/^/'/\" \
+                                -e \"\\\$s/\\\$/' \\\\\\\\/\"
+                      done" sh '{}' +
+  )"
+  [ 0 -lt "$#" ] || break
+  for dir; do
+    OLDPWD="${PWD}"
+    if cd -- "${dir}"; then
+      if gzip --quiet --test Payload; then
+        if ! gzcat Payload | cpio -idmu --quiet; then
+          mv Payload Payload.bak
+        fi
+      elif [ pbzx = "$(head -c4 <Payload)" ]; then
+        #xip --expand "${UNPKG}/Payload"  # WTF: must be signed by Apple™
+        if [ -x "$(command -v yaa)" ]; then
+          if ! yaa extract -exclude-regex "${YAA_IGNORE}" <Payload; then
+            mv Payload Payload.bak
+          fi
+          chmod -t .
+        else
+          # http://newosxbook.com/articles/OTA.html
+          # http://newosxbook.com/articles/OTA9.html
+          # https://github.com/jakwings/unpkg
+          if ! pbzx <Payload | cpio -idmu --quiet; then
+            mv Payload Payload.bak
+          fi
+        fi
+      else
+        if ! yaa extract -exclude-regex "${YAA_IGNORE}" <Payload; then
+          mv Payload Payload.bak
+        fi
+        # XXX: yaa might set the sticky(7) bit for current directory
+        chmod -t .
+      fi
+      rm -f Payload
+      cd -- "${OLDPWD}"
     fi
-    cd -- "${OLDPWD}"
-  fi
+  done
 done
-ditto "${UNPKG}/data" "${OUTDIR}"
+
+mv -- "${UNPKG}/data" "${OUTDIR}"
