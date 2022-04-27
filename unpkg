@@ -73,16 +73,28 @@ YAA_IGNORE='^(\.|\.\.(/.*)*|/.*)$'
 
 set -- "${UNPKG}/data"
 while true; do
-  eval "set -- $(
+  cmd_set_dirs="set -- $(
     find "$@" \
          -name Payload -type f \
-         -exec sh -c "for path; do
-                        printf '%s\\n' \"\${path%/Payload}\" \
-                          | sed -e \"s/'/'\\\\\\\\''/g\" \
-                                -e \"1s/^/'/\" \
-                                -e \"\\\$s/\\\$/' \\\\\\\\/\"
-                      done" sh '{}' +
+         -exec sh -c "
+shquote() {
+ if [ 0 -lt \"\$#\" ]; then
+   set -- \"\$*\"
+   printf \"'\"
+   while ! case \"\$1\" in (*\\'*) false; esac; do
+     set -- \"\${1#*\\'}\" \"\${1%%\\'*}\"
+     printf '%s' \"\$2'\\\\''\"
+   done
+   printf '%s' \"\$1'\"
+ fi
+}
+for path; do
+  printf ' '
+  shquote \"\${path%/Payload}\"
+done
+               " sh '{}' +
   )"
+  eval "${cmd_set_dirs}"
   [ 0 -lt "$#" ] || break
   for dir; do
     OLDPWD="${PWD}"
