@@ -69,7 +69,7 @@ realpath UNPKG "${UNPKG}"
 
 pkgutil --expand "${PKG}" "${UNPKG}/data"
 
-YAA_IGNORE='^(\.|\.\.(/.*)*|/.*)$'
+YAA_IGNORE='^(\.|([^/]*/)*\.\.(/.*)*|/.*)$'
 
 set -- "${UNPKG}/data"
 while true; do
