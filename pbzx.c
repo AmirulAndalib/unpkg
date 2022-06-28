@@ -219,6 +219,9 @@ int main(int argc, char **argv)
 #ifdef XZ_DEC_ANY_CHECK
                     case XZ_UNSUPPORTED_CHECK:
                         OMG("unsupported integrity check (ignored)");
+                        if (stream.out_pos == 0) {
+                            continue;
+                        }
                         break;
 #endif
                     case XZ_MEM_ERROR:
