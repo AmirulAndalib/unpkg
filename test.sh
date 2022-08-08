@@ -10,7 +10,7 @@ echo() {
 
 test_dir='./tests'
 
-src_dir='/System/Library/Sandbox'
+src_dir='/System/Library/Frameworks/CoreServices.framework'
 dst_dir="${test_dir}/$(basename -- ${src_dir})"
 
 mkdir -p -- "${test_dir}"
