@@ -65,6 +65,7 @@ enum ExitCode {
 static void
 error_exit(enum ExitCode exitcode)
 {
+    fflush(stdout);
     fprintf(stderr, "\n");
     switch (exitcode) {
     case ExitCode_Magic: OMG("magic header not found"); break;
@@ -119,7 +120,7 @@ int main(int argc, char **argv)
 
     if (fread(&in_buf, PBZX_MAGIC_SIZE, 1, input) != 1) {
         OMG(strerror(errno));
-        WTF(ExitCode_Magic);
+        WTF(ExitCode_Read);
     }
     if (memcmp(in_buf, PBZX_MAGIC, PBZX_MAGIC_SIZE) == 0) {
         algorithm = COMPRESSION_LZMA;

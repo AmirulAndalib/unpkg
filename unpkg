@@ -77,21 +77,21 @@ while true; do
     find "$@" \
          -name Payload -type f \
          -exec sh -c "
-shquote() {
- if [ 0 -lt \"\$#\" ]; then
-   set -- \"\$*\"
-   printf \"'\"
-   while ! case \"\$1\" in (*\\'*) false; esac; do
-     set -- \"\${1#*\\'}\" \"\${1%%\\'*}\"
-     printf '%s' \"\$2'\\\\''\"
-   done
-   printf '%s' \"\$1'\"
- fi
-}
-for path; do
-  printf ' '
-  shquote \"\${path%/Payload}\"
-done
+                 shquote() {
+                  if [ 0 -lt \"\$#\" ]; then
+                    set -- \"\$*\"
+                    printf \"'\"
+                    while ! case \"\$1\" in (*\\'*) false; esac; do
+                      set -- \"\${1#*\\'}\" \"\${1%%\\'*}\"
+                      printf '%s' \"\$2'\\\\''\"
+                    done
+                    printf '%s' \"\$1'\"
+                  fi
+                 }
+                 for path; do
+                   printf ' '
+                   shquote \"\${path%/Payload}\"
+                 done
                " sh '{}' +
   )"
   eval "${cmd_set_dirs}"
@@ -125,6 +125,7 @@ done
         # XXX: yaa might set the sticky(7) bit for current directory
         chmod -t .
       fi
+      # payload may be empty; skip pipefail; avoid infinite loop
       rm -f Payload
       cd -- "${OLDPWD}"
     fi

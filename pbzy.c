@@ -50,6 +50,7 @@ enum ExitCode {
 static void
 error_exit(enum ExitCode exitcode)
 {
+    fflush(stdout);
     fprintf(stderr, "\n");
     switch (exitcode) {
     case ExitCode_Open: OMG("failed to open file"); break;
