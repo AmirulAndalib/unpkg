@@ -8,9 +8,19 @@
 
 
 /*\
- / http://newosxbook.com/articles/OTA.html
- / http://newosxbook.com/articles/OTA9.html
- / https://tukaani.org/xz/format.html
+ / Thanks to:
+ / * http://newosxbook.com/articles/OTA.html
+ / * http://newosxbook.com/articles/OTA9.html
+ / * https://tukaani.org/xz/format.html
+ / $ man 1 compression_tool
+ / The file starts with a 4-byte header 'p','b','z',<algo>, where <algo>
+ / indicates the algorithm used to compress data. The header is followed by
+ / the 64-bit block size in bytes. Then for each block, we have 64-bit
+ / uncompressed size (will batch the block size, except possibly for the last
+ / block), 64-bit compressed size, and the compressed payload. If both
+ / uncompressed and compressed sizes for a block are equal, the payload is
+ / stored uncompressed. All 64-bit values are stored big-endian. Valid values
+ / for <algo> are: 'z' for zlib, 'x' for lzma, '4' for lz4, and 'e' for lzfse.
 \*/
 
 #include <errno.h>
@@ -188,7 +198,7 @@ int main(int argc, char **argv)
         if (in_size > out_size) {
             OMG("recorded size of compressed data exceeds recorded size of uncompressed data (ignored)");
         }
-        // XXX: uncompressed data ?
+        // uncompressed data
         if (in_size == out_size) {
             while (in_size > 0) {
                 delta = byte_read(input, in_buf, MIN(sizeof(in_buf), in_size));

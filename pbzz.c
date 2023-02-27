@@ -161,7 +161,7 @@ int main(int argc, char **argv)
         if (in_size > out_size) {
             OMG("recorded size of compressed data exceeds recorded size of uncompressed data (ignored)");
         }
-        // XXX: uncompressed data ?
+        // uncompressed data
         if (in_size == out_size) {
             while (in_size > 0) {
                 delta = byte_read(input, in_buf, MIN(sizeof(in_buf), in_size));
