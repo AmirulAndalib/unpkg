@@ -28,6 +28,6 @@ test: pbzx pbzy pbzz test.sh
 
 clean:
 	rm -v -f -- pbzx pbzy pbzz
-	rm -v -f -R -- tests
+	rm -v -f -R -- tmp
 
 .PHONEY: clean test
