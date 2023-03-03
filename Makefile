@@ -2,7 +2,10 @@ CFLAGS := -O2 -Wall -Wextra -pedantic
 LDFLAGS :=
 
 ifeq ($(shell uname),Darwin)
+PLATFORM := macos
 CC := xcrun clang
+else
+PLATFORM := linux
 endif
 
 # cross-platform compilation, e.g. make CC='zig cc --target=x86_64-linux-musl'
@@ -23,8 +26,13 @@ pbzy: pbzy.c Makefile
 pbzz: pbzz.c Makefile
 	$(CC) $(CFLAGS) $(LDFLAGS) -mmacosx-version-min=10.11 -lcompression -o pbzz pbzz.c
 
+ifeq ($(PLATFORM),macos)
 test: pbzx pbzy pbzz test.sh
 	./test.sh
+else
+test: pbzx test.linux.sh
+	./test.linux.sh
+endif
 
 clean:
 	rm -v -f -- pbzx pbzy pbzz
