@@ -7,8 +7,8 @@ echo() {
 }
 
 exe='./pbzx'
-data='./data.zip'
 test_dir='./tmp'
+data_zip='./data.zip'
 data_dir="${test_dir}/data"
 
 exitcode=0
@@ -28,27 +28,27 @@ check() {
 
 mkdir -p -- "${test_dir}"
 
-unzip "${data}" -d "${test_dir}" >/dev/null
+unzip "${data_zip}" -d "${test_dir}" >/dev/null
 
-check '[TEST] single-block 1 -- block size: 1024 bytes' \
+check '[TEST] pbzx single-block 1 -- block size: 1024' \
       "${data_dir}/zero1" \
       "${data_dir}/zero1.lzma" \
       "${test_dir}/single-block.1.a" \
       "${test_dir}/single-block.1.b"
 
-check '[TEST] single-block 2 -- block size: 1024 bytes' \
+check '[TEST] pbzx single-block 2 -- block size: 1024' \
       "${data_dir}/rand1" \
       "${data_dir}/rand1.lzma" \
       "${test_dir}/single-block.2.a" \
       "${test_dir}/single-block.2.b"
 
-check '[TEST] multi-block 1 -- block size: 1024 bytes' \
+check '[TEST] pbzx multi-block 1 -- block size: 1024' \
       "${data_dir}/zero2" \
       "${data_dir}/zero2.lzma" \
       "${test_dir}/multi-block.1.a" \
       "${test_dir}/multi-block.1.b"
 
-check '[TEST] multi-block 2 -- block size: 1024 bytes' \
+check '[TEST] pbzx multi-block 2 -- block size: 1024' \
       "${data_dir}/rand2" \
       "${data_dir}/rand2.lzma" \
       "${test_dir}/multi-block.2.a" \

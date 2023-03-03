@@ -6,14 +6,20 @@ echo() {
   printf '%s\n' "$*"
 }
 
+exe_dir='.'
 test_dir='./tmp'
-
-src_dir='/System/Library/Frameworks/CoreServices.framework'
-dst_dir="${test_dir}/$(basename -- ${src_dir})"
+data_zip='./data.zip'
+data_dir="${test_dir}/unzip"
+src_dir="${data_dir}/data"
+dst_dir="${test_dir}/data"
 
 exitcode=0
 
-mkdir -p -- "${test_dir}"
+./test.linux.sh
+
+mkdir -p -- "${test_dir}" "${data_dir}"
+
+unzip "${data_zip}" -d "${data_dir}" >/dev/null
 
 for exe in pbzx pbzy pbzz; do
   for algo in lzma lz4 lzfse zlib; do
@@ -28,7 +34,7 @@ for exe in pbzx pbzy pbzz; do
     head -c 524288 </dev/zero >"${a}"
     head -c 524288 </dev/urandom >>"${a}"
     compression_tool -encode -A "${algo}" -b 1m <"${a}" >"${t}"
-    if "./${exe}" <"${t}" >"${b}" && diff -q "${a}" "${b}"; then
+    if "${exe_dir}/${exe}" <"${t}" >"${b}" && diff -q "${a}" "${b}"; then
       echo "[TEST] ${exe} single-block decompression succeeded: ${algo}"
       rm -- "${a}" "${b}" "${t}"
     else
@@ -42,10 +48,10 @@ for exe in pbzx pbzy pbzz; do
 
     raw="${test_dir}/multi.${algo}.raw"
     archive="${test_dir}/multi.${algo}.${exe##*/}"
-    yaa archive -a "${algo}" -i "${src_dir}" -o "${archive}"
-    if "./${exe}" "${archive}" >"${raw}" \
-      && yaa extract -a raw -i "${raw}" -d "${test_dir}" \
-      && diff -q -r "${src_dir}" "${dst_dir}"
+    yaa archive -a "${algo}" -b 8192 -D "${src_dir}" -o "${archive}"
+    if "${exe_dir}/${exe}" "${archive}" >"${raw}" \
+      && yaa extract -a raw -i "${raw}" -d "$(dirname -- "${dst_dir}")" \
+      && diff -q -r -- "${src_dir}" "${dst_dir}"
     then
       echo "[TEST] ${exe} multi-block decompression succeeded: ${algo}"
       rm -R -- "${raw}" "${archive}" "${dst_dir}"
