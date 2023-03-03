@@ -60,6 +60,7 @@ on_exit() {
   if [ -d "${UNPKG}" ]; then
     rm -Rf -- "${UNPKG}"
   fi
+  echo '[ERROR] unpkg exited abnormally' >&2
   exit "${exitcode}"
 }
 trap on_exit EXIT
@@ -103,7 +104,7 @@ while true; do
         if ! gzcat Payload | cpio -idmu --quiet; then
           mv Payload Payload.bak
         fi
-      elif [ pbzx = "$(head -c4 <Payload)" ]; then
+      elif [ 70627a78 = "$(head -c4 <Payload | xxd -p)" ]; then
         #xip --expand "${UNPKG}/Payload"  # WTF: must be signed by Apple™
         if [ -x "$(command -v yaa)" ]; then
           if ! yaa extract -exclude-regex "${YAA_IGNORE}" <Payload; then
