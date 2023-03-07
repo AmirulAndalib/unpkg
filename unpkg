@@ -9,11 +9,11 @@ echo() {
   printf '%s\n' "$*"
 }
 
-PKG="$1"
-OUTDIR="$2"
+PKG="${1-}"
+OUTDIR="${2-}"
 
 if [ -z "${PKG}" ] || [ -z "${OUTDIR}" ]; then
-  help
+  help >&2
   exit 1
 fi
 
