@@ -9,13 +9,13 @@ echo() {
   printf '%s\n' "$*"
 }
 
-PKG="${1-}"
-OUTDIR="${2-}"
-
-if [ -z "${PKG}" ] || [ -z "${OUTDIR}" ]; then
+if ! [ 2 -le "$#" ]; then
   help >&2
   exit 1
 fi
+
+PKG="$1"
+OUTDIR="$2"
 
 # works like "realpath -P ..." but the last path component can be nonexistent
 # usage: realpath varname filepath
